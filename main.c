@@ -142,6 +142,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    hmap_free(routeMap, 0);
     SSL_CTX_free(ctx);
     EVP_cleanup();
 
@@ -217,7 +218,6 @@ void *connection_handler(void *socket_desc)
         memset(rbuff, '\0', sizeof(rbuff));
     }
 
-    hmap_free(routeMap, 0);
     SSL_free(ssl);
     close(sock);
 
