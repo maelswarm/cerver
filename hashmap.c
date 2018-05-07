@@ -279,12 +279,9 @@ NODE *p, **pp;
      p->hval = h;
 
      add_front(&(map->tbl[idx]), p);
-     return NULL;  // no old value to return
+     return NULL;
   }
-  else {  // key already in map
-//     void *tmp = p->val;
-//     p->val = val;
-//     return tmp;  // return old value
+  else {
       char *key_clone;
       char *val_clone;
       
@@ -331,8 +328,7 @@ NODE *p, **pp;
 	unsigned idx;
 	void *val = p->val;
 
-	*pp = p->next;  // make predecessor skip node
-			//   being removed
+	*pp = p->next;
 	free(p->key);
 	free(p);
 
@@ -433,10 +429,6 @@ void **values = malloc(map->n * (sizeof(void *)));
   }
   return values;
 }
-  
-
-
-
 
 void hmap_free(HMAP_PTR map, int free_vals) {
 int i;
@@ -444,10 +436,9 @@ int i;
   for(i=0; i<map->tsize; i++) 
 	free_lst(map->tbl[i].members, free_vals);
   free(map->tbl);
-  map->tbl = NULL;  // not needed
+  map->tbl = NULL;
   free(map);
 }
-
 
 
 /**** UTILITY FUNCTIONS *******/
@@ -466,7 +457,6 @@ NODE **pp;
   pp =&(map->tbl[i].members); 
   while( *pp != NULL) {
       if(match(key, h, *pp)) {
-          //printf("\nMATCH FOUND for KEY:%s VAL:%s\n", key, (char *)((*pp)->key));
           return pp;
       }
     pp = &((*pp)->next);
@@ -508,7 +498,6 @@ int i, idx;
     p = map->tbl[i].members;
     while(p != NULL) {
 	nxt = p->next;
-  	// h = map->hfunc(key);  // no need to recompute
   	idx = p->hval % ntsize;
 	add_front(&ntbl[idx], p);
 	p = nxt;
@@ -523,7 +512,7 @@ int i, idx;
 static void free_lst(NODE *l, int free_vals) {
   if(l == NULL) return;
   free_lst(l->next, free_vals );
-  free(l->key);  // made our own copy
+  free(l->key);
   if(free_vals &&  l->val != NULL)
 	free(l->val);
   free(l);

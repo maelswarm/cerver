@@ -84,8 +84,9 @@ void configure_context(SSL_CTX *ctx)
 
 void construct_routes() {
   routeMap = hmap_create(0,1.0);
-  hmap_set(routeMap, "/", "./build/main.html");
-  hmap_set(routeMap, "/main.js", "./build/main.js");
+  hmap_set(routeMap, "/", "./build/index.html");
+  hmap_set(routeMap, "/main.js", "./build/main-xelem-min.js");
+  hmap_set(routeMap, "/main.css", "./build/main.css");
   //add routes...
 }
 
@@ -93,6 +94,7 @@ void intHandler() {
     hmap_free(routeMap, 0);
     SSL_CTX_free(ctx);
     EVP_cleanup();
+    exit(0);
 }
 
 int main(int argc, char *argv[])
@@ -165,9 +167,8 @@ void *connection_handler(void *socket_desc)
     SSL_set_fd(ssl, *(int *)socket_desc);
     int sock = *(int *)socket_desc;
     int n;
-    char rbuff[10000], sbuff[10000];
+    char rbuff[10000];
     memset(rbuff, '\0', sizeof(rbuff));
-    memset(sbuff, '\0', sizeof(sbuff));
 
     if (SSL_accept(ssl) <= 0)
     {
@@ -189,11 +190,15 @@ void *connection_handler(void *socket_desc)
         memset(fileName, '\0', sizeof(fileName));
         char *tmp = hmap_get(routeMap, reqRoute);
         if(tmp == NULL) {
+          char sbuff[+1000];
+          memset(sbuff, '\0', sizeof(sbuff));
+
           strcat(sbuff, "HTTP/1.1 400 Not Found\r\n");
           strcat(sbuff, "Connection: Closed\r\n");
           strcat(sbuff, "Content-Length: 35\r\n\r\n");
           strcat(sbuff, "<html><body>Not Found</body></html>");
-          printf("Bad Request\n");
+          printf("Not Found\n");
+          SSL_write(ssl, sbuff, strlen(sbuff));
         } else {
           strcpy(fileName, tmp);
           int fileSize = fsize(fileName);
@@ -205,15 +210,17 @@ void *connection_handler(void *socket_desc)
           fread(fileContent, 1, fileSize, fp);
           fclose(fp);
 
+          char sbuff[fileSize+1000];
+          memset(sbuff, '\0', sizeof(sbuff));
+
           strcat(sbuff, "HTTP/1.1 200 OK\r\n");
           strcat(sbuff, "Content-Length: ");
           sprintf(sbuff, "%s%i", sbuff, fileSize);
           strcat(sbuff, "\r\nConnection: Closed\r\n\r\n");
           strcat(sbuff, fileContent);
+          SSL_write(ssl, sbuff, strlen(sbuff));
         }
-        SSL_write(ssl, sbuff, strlen(sbuff));
         memset(rbuff, '\0', sizeof(rbuff));
-        memset(sbuff, '\0', sizeof(sbuff));
     }
 
     SSL_free(ssl);
