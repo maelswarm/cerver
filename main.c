@@ -84,15 +84,9 @@ void configure_context(SSL_CTX *ctx)
 
 void construct_routes() {
   routeMap = hmap_create(0,1.0);
-  char *file = (char *)malloc(18 * sizeof(char));
-  memset(file, '\0', sizeof(file));
-  strcpy(file, "./build/main.html");
   hmap_set(routeMap, "/", "./build/main.html");
-
-  file = (char *)malloc(16 * sizeof(char));
-  memset(file, '\0', sizeof(file));
-  strcpy(file, "./build/main.js");
   hmap_set(routeMap, "/main.js", "./build/main.js");
+  //add routes...
 }
 
 void intHandler() {
