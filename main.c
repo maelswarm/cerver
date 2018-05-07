@@ -215,6 +215,7 @@ void *connection_handler(void *socket_desc)
         memset(rbuff, '\0', sizeof(rbuff));
     }
 
+    hmap_free(routeMap, 0);
     SSL_free(ssl);
     close(sock);
 
