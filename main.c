@@ -80,6 +80,8 @@ void construct_routes() {
   hmap_set(routeMap, "/", "./build/index.html");
   hmap_set(routeMap, "/main.js", "./build/main-xelem-min.js");
   hmap_set(routeMap, "/main.css", "./build/main.css");
+  hmap_set(routeMap, "/SourceSansPro.css", "./build/SourceSansPro.css");
+  hmap_set(routeMap, "/logo2.png", "./build/logo2.png");
   //add routes...
 }
 
@@ -196,7 +198,7 @@ void *connection_handler(void *socket_desc)
         char reqRoute[len + 1];
         memset(reqRoute, '\0', sizeof(reqRoute));
         strncpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len);
-        char *fileName[1000];
+        char fileName[1000];
         memset(fileName, '\0', sizeof(fileName));
         char *tmp = hmap_get(routeMap, reqRoute);
         if(tmp == NULL) {
