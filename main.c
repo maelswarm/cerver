@@ -24,12 +24,6 @@
 
 #include "hashmap.h"
 
-#define KEY_MAX_LENGTH (256)
-#define KEY_PREFIX ("bladerunner")
-#define KEY_COUNT (1024*1024)
-
-#define CHUNK_SIZE 512
-
 void *connection_handler(void *);
 
 SSL_CTX *ctx;
@@ -70,7 +64,6 @@ void configure_context(SSL_CTX *ctx)
 {
     SSL_CTX_set_ecdh_auto(ctx, 1);
 
-    /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
 	exit(EXIT_FAILURE);
@@ -107,11 +100,8 @@ int main(int argc, char *argv[])
     ctx = create_context();
     configure_context(ctx);
 
-    /* set the local certificate from CertFile */
     SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM);
-    /* set the private key from KeyFile */
     SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM);
-    /* verify private key */
     if (!SSL_CTX_check_private_key(ctx))
     {
         abort();
@@ -198,9 +188,6 @@ void *connection_handler(void *socket_desc)
     {
         ERR_print_errors_fp(stderr);
     }
-    else
-    {
-    }
 
     while ((n = SSL_read(ssl, rbuff, sizeof(rbuff))) > 0)
     {
@@ -209,8 +196,7 @@ void *connection_handler(void *socket_desc)
         char reqRoute[len + 1];
         memset(reqRoute, '\0', sizeof(reqRoute));
         strncpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len);
-        printf("%s %i\n", reqRoute, strlen(reqRoute));
-        char *fileName = (char *)malloc(1000 * sizeof(char));
+        char *fileName[1000];
         memset(fileName, '\0', sizeof(fileName));
         char *tmp = hmap_get(routeMap, reqRoute);
         if(tmp == NULL) {
@@ -218,10 +204,8 @@ void *connection_handler(void *socket_desc)
         } else {
           strcpy(fileName, tmp);
           int fileSize = fsize(fileName);
-          printf("Here2 %i %s\n", fileSize, fileName);
           char fileContent[fileSize];
           memset(fileContent, '\0', sizeof(fileContent));
-          printf("%s %i\n", (char *)fileName, fileSize);
           FILE *fp = fopen(fileName, "r");
           fread(fileContent, 1, fileSize, fp);
           fclose(fp);
