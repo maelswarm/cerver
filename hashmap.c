@@ -228,12 +228,10 @@ NODE **pp, *tmp;
   pp = get_node_pred(map, key);
   
     if (*pp!=NULL) {
-        printf("VAL:%s", (*pp)->val);
         tmp = *pp;
         while (tmp->next!=NULL) {
             tmp = tmp->next;
             if (strlen(tmp->val)==strlen(key)) {
-                printf(", %s", tmp->val);
             }
         }
         printf("\n");
