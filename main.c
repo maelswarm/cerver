@@ -169,7 +169,10 @@ void send_not_found(SSL *ssl) {
     strcat(sbuff, "Connection: Closed\r\n");
     strcat(sbuff, "Content-Length: 35\r\n\r\n");
     strcat(sbuff, "<html><body>Not Found</body></html>");
-    SSL_write(ssl, sbuff, strlen(sbuff));
+    int ret;
+    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
+      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    }
 }
 
 void send_ok(SSL *ssl, int fileSize, char *fileContent) {
@@ -181,7 +184,10 @@ void send_ok(SSL *ssl, int fileSize, char *fileContent) {
     sprintf(sbuff, "%s%i", sbuff, fileSize);
     strcat(sbuff, "\r\nConnection: Closed\r\n\r\n");
     strcat(sbuff, fileContent);
-    SSL_write(ssl, sbuff, strlen(sbuff));
+    int ret;
+    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
+      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    }
 }
 
 void *connection_handler(void *socket_desc)
@@ -201,7 +207,12 @@ void *connection_handler(void *socket_desc)
     while ((n = SSL_read(ssl, rbuff, sizeof(rbuff))) > 0)
     {
         printf("%s\n", rbuff);
-        int len = strstr(rbuff, "HTTP") - strstr(rbuff, "/") - 1;
+        void *start = strstr(rbuff, "HTTP");
+        void *end = strstr(rbuff, "/");
+        if(start == NULL || end == NULL) {
+          continue;
+        }
+        int len = start - end - 1;
         char reqRoute[len + 1];
         memset(reqRoute, '\0', sizeof(reqRoute));
         strncpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len);
