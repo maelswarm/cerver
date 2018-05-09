@@ -24,6 +24,16 @@
 
 #include "hashmap.h"
 
+
+off_t fsize(const char *);
+
+void init_openssl(void);
+void intHandler(int);
+
+void configure_context(SSL_CTX *);
+void construct_routes();
+void send_not_found(SSL *);
+void send_ok(SSL *, int, char *);
 void *connection_handler(void *);
 
 SSL_CTX *ctx;
@@ -85,7 +95,7 @@ void construct_routes() {
   //add routes...
 }
 
-void intHandler() {
+void intHandler(int x) {
     hmap_free(routeMap, 0);
     SSL_CTX_free(ctx);
     EVP_cleanup();
@@ -162,7 +172,6 @@ void send_not_found(SSL *ssl) {
     strcat(sbuff, "Connection: Closed\r\n");
     strcat(sbuff, "Content-Length: 35\r\n\r\n");
     strcat(sbuff, "<html><body>Not Found</body></html>");
-    printf("Not Found\n");
     SSL_write(ssl, sbuff, strlen(sbuff));
 }
 
