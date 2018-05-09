@@ -1,13 +1,15 @@
 # cerver
-HTTPS Server written in C
 
 This project is in development... It's not ready for a production environment.
 
 ## Install
 
 ````
+git clone git@github.com:roecrew/cerver.git
+openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem
 gcc -std=c11 -c hashmap.c hashmap.h
 gcc -std=c11 main.c hashmap.o -o cerver -lssl -lcrypto -lpthread
+./cerver
 ````
 
 ## Usage
