@@ -111,9 +111,6 @@ int main(int argc, char *argv[])
     init_openssl();
     ctx = create_context();
     configure_context(ctx);
-
-    SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM);
     if (!SSL_CTX_check_private_key(ctx))
     {
         abort();
