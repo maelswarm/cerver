@@ -314,7 +314,7 @@ void *connection_handler(void *socket_desc)
     {
       offset += n;
       rbuff[offset] = '\0';
-      if(SSL_get_error(ssl, n) == SSL_ERROR_WANT_WRITE) {
+      if(SSL_get_error(ssl, n) == SSL_ERROR_WANT_READ) {
         continue;
       }
       void *start = strstr(rbuff, "HTTP");
