@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)))
     {
         pthread_t thread;
-        new_sock = malloc(1);
+        new_sock = malloc(sizeof(client_sock));
         *new_sock = client_sock;
 
         if (pthread_create(&thread, NULL, connection_handler, (void *)new_sock) < 0)
@@ -206,7 +206,6 @@ void *connection_handler(void *socket_desc)
 
     while ((n = SSL_read(ssl, rbuff, sizeof(rbuff))) > 0)
     {
-        printf("%s\n", rbuff);
         void *start = strstr(rbuff, "HTTP");
         void *end = strstr(rbuff, "/");
         if(start == NULL || end == NULL) {
@@ -237,12 +236,9 @@ void *connection_handler(void *socket_desc)
 
     SSL_free(ssl);
     close(sock);
+    free(socket_desc);
 
-    if (n == 0)
-    {
-        puts("Client Disconnected");
-    }
-    else
+    if(n < 0)
     {
         perror("recv failed");
     }
