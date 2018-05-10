@@ -182,7 +182,8 @@ void send_ok(SSL *ssl, int fileSize, char *fileContent) {
     strcat(sbuff, "HTTP/1.1 200 OK\r\n");
     strcat(sbuff, "Content-Length: ");
     sprintf(sbuff, "%s%i", sbuff, fileSize);
-    strcat(sbuff, "\r\nConnection: Closed\r\n\r\n");
+    strcat(sbuff, "\r\nConnection: keep-alive\r\n");
+    strcat(sbuff, "Keep-Alive: timeout=5, max=20\r\n\r\n")
     strcat(sbuff, fileContent);
     int ret;
     if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
