@@ -168,10 +168,10 @@ void send_entity_too_large(SSL *ssl) {
     size_t sbuffSize = sizeof(sbuff);
     memset(sbuff, '\0', sbuffSize);
 
-    strlcat(sbuff, "HTTP/1.1 413 Entity Too Large\r\n", sbuffSize);
-    strlcat(sbuff, "Connection: Closed\r\n", sbuffSize);
-    strlcat(sbuff, "Content-Length: 42\r\n\r\n", sbuffSize);
-    strlcat(sbuff, "<html><body>Entity Too Large</body></html>", sbuffSize);
+    strncat(sbuff, "HTTP/1.1 413 Entity Too Large\r\n", sbuffSize);
+    strncat(sbuff, "Connection: Closed\r\n", sbuffSize);
+    strncat(sbuff, "Content-Length: 42\r\n\r\n", sbuffSize);
+    strncat(sbuff, "<html><body>Entity Too Large</body></html>", sbuffSize);
     int ret;
     if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
       printf("Send Error: %i", SSL_get_error(ssl, ret));
@@ -183,10 +183,10 @@ void send_bad_request(SSL *ssl) {
     size_t sbuffSize = sizeof(sbuff);
     memset(sbuff, '\0', sbuffSize);
 
-    strlcat(sbuff, "HTTP/1.1 400 Bad Request\r\n", sbuffSize);
-    strlcat(sbuff, "Connection: Closed\r\n", sbuffSize);
-    strlcat(sbuff, "Content-Length: 37\r\n\r\n", sbuffSize);
-    strlcat(sbuff, "<html><body>Bad Request</body></html>", sbuffSize);
+    strncat(sbuff, "HTTP/1.1 400 Bad Request\r\n", sbuffSize);
+    strncat(sbuff, "Connection: Closed\r\n", sbuffSize);
+    strncat(sbuff, "Content-Length: 37\r\n\r\n", sbuffSize);
+    strncat(sbuff, "<html><body>Bad Request</body></html>", sbuffSize);
     int ret;
     if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
       printf("Send Error: %i", SSL_get_error(ssl, ret));
@@ -198,10 +198,10 @@ void send_not_found(SSL *ssl) {
     size_t sbuffSize = sizeof(sbuff);
     memset(sbuff, '\0', sbuffSize);
 
-    strlcat(sbuff, "HTTP/1.1 404 Not Found\r\n", sbuffSize);
-    strlcat(sbuff, "Connection: Closed\r\n", sbuffSize);
-    strlcat(sbuff, "Content-Length: 35\r\n\r\n", sbuffSize);
-    strlcat(sbuff, "<html><body>Not Found</body></html>", sbuffSize);
+    strncat(sbuff, "HTTP/1.1 404 Not Found\r\n", sbuffSize);
+    strncat(sbuff, "Connection: Closed\r\n", sbuffSize);
+    strncat(sbuff, "Content-Length: 35\r\n\r\n", sbuffSize);
+    strncat(sbuff, "<html><body>Not Found</body></html>", sbuffSize);
     int ret;
     if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
       printf("Send Error: %i", SSL_get_error(ssl, ret));
@@ -213,12 +213,10 @@ void send_ok(SSL *ssl, int fileSize, char *fileContent) {
     size_t sbuffSize = sizeof(sbuff);
     memset(sbuff, '\0', sbuffSize);
 
-    strlcat(sbuff, "HTTP/1.1 200 OK\r\n", sbuffSize);
-    strlcat(sbuff, "Content-Length: ", sbuffSize);
-    snprintf(sbuff, strlen(sbuff) + 1 + fileSize, "%s%i", sbuff, fileSize);
-    strlcat(sbuff, "\r\nConnection: keep-alive\r\n", sbuffSize);
-    strlcat(sbuff, "Keep-Alive: timeout=5, max=20\r\n\r\n", sbuffSize);
-    strlcat(sbuff, fileContent, sbuffSize);
+    snprintf(sbuff, sbuffSize, "%s%i", "HTTP/1.1 200 OK\r\nContent-Length: ", fileSize);
+    strncat(sbuff, "\r\nConnection: keep-alive\r\n", sbuffSize);
+    strncat(sbuff, "Keep-Alive: timeout=5, max=20\r\n\r\n", sbuffSize);
+    strncat(sbuff, fileContent, sbuffSize);
     int ret;
     if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
       printf("Send Error: %i", SSL_get_error(ssl, ret));
@@ -258,7 +256,7 @@ void *connection_handler(void *socket_desc)
       int len = start - end - 1;
       char reqRoute[len + 1];
       memset(reqRoute, '\0', sizeof(reqRoute));
-      strlcpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len);
+      strlcpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len + 1);
       char fileName[1000];
       memset(fileName, '\0', sizeof(fileName));
       char *tmp = hmap_get(routeMap, reqRoute);
