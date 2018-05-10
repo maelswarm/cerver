@@ -234,7 +234,6 @@ NODE **pp, *tmp;
             if (strlen(tmp->val)==strlen(key)) {
             }
         }
-        printf("\n");
     }
     
   return (*pp == NULL ? NULL : (*pp)->val);
