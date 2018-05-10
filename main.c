@@ -48,14 +48,12 @@ off_t fsize(const char *filename) {
     return -1;
 }
 
-void init_openssl()
-{
+void init_openssl() {
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
 }
 
-SSL_CTX *create_context()
-{
+SSL_CTX *create_context() {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 
@@ -71,8 +69,7 @@ SSL_CTX *create_context()
     return ctx;
 }
 
-void configure_context(SSL_CTX *ctx)
-{
+void configure_context(SSL_CTX *ctx) {
     SSL_CTX_set_ecdh_auto(ctx, 1);
 
     if (SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM) <= 0) {
@@ -112,16 +109,14 @@ int main(int argc, char *argv[])
     init_openssl();
     ctx = create_context();
     configure_context(ctx);
-    if (!SSL_CTX_check_private_key(ctx))
-    {
+    if (!SSL_CTX_check_private_key(ctx)) {
         abort();
     }
 
     construct_routes();
 
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_desc == -1)
-    {
+    if (socket_desc == -1) {
         printf("Could not create socket");
     }
 
@@ -129,23 +124,20 @@ int main(int argc, char *argv[])
     server.sin_addr.s_addr = inet_addr("0.0.0.0");
     server.sin_port = htons(443);
 
-    if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0)
-    {
+    if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
         perror("bind failed. Error");
         return 1;
     }
     listen(socket_desc, 3);
 
     c = sizeof(struct sockaddr_in);
-    while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)))
-    {
+    while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)) > -1) {
 
         pthread_t thread;
         new_sock = malloc(sizeof(client_sock));
         *new_sock = client_sock;
 
-        if (pthread_create(&thread, NULL, connection_handler, (void *)new_sock) < 0)
-        {
+        if (pthread_create(&thread, NULL, connection_handler, (void *)new_sock) < 0) {
             perror("could not create thread");
             return 1;
         }
@@ -155,8 +147,7 @@ int main(int argc, char *argv[])
     SSL_CTX_free(ctx);
     EVP_cleanup();
 
-    if (client_sock < 0)
-    {
+    if (client_sock < 0) {
         perror("accept failed");
         return 1;
     }
@@ -223,8 +214,7 @@ void send_ok(SSL *ssl, int fileSize, char *fileContent) {
     }
 }
 
-void *connection_handler(void *socket_desc)
-{
+void *connection_handler(void *socket_desc) {
     SSL *ssl = SSL_new(ctx);
     SSL_set_fd(ssl, *(int *)socket_desc);
     int sock = *(int *)socket_desc;
@@ -239,7 +229,7 @@ void *connection_handler(void *socket_desc)
 
     while ((n = SSL_read(ssl, &rbuff[offset], sizeof(rbuff) - offset)) > 0) {
       offset += n;
-      if(offset >= sizeof(rbuff) - 1) {
+      if(sizeof(rbuff) - offset <= 0) {
         send_entity_too_large(ssl);
         break;
       }
@@ -284,8 +274,7 @@ void *connection_handler(void *socket_desc)
     close(sock);
     free(socket_desc);
 
-    if(n < 0)
-    {
+    if(n < 0) {
         perror("recv failed");
     }
     return 0;
