@@ -161,6 +161,20 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void send_entity_too_large(SSL *ssl) {
+    char sbuff[500];
+    memset(sbuff, '\0', sizeof(sbuff));
+
+    strcat(sbuff, "HTTP/1.1 413 Entity Too Large\r\n");
+    strcat(sbuff, "Connection: Closed\r\n");
+    strcat(sbuff, "Content-Length: 35\r\n\r\n");
+    strcat(sbuff, "<html><body>Not Found</body></html>");
+    int ret;
+    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
+      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    }
+}
+
 void send_bad_request(SSL *ssl) {
     char sbuff[500];
     memset(sbuff, '\0', sizeof(sbuff));
@@ -211,7 +225,7 @@ void *connection_handler(void *socket_desc)
     SSL_set_fd(ssl, *(int *)socket_desc);
     int sock = *(int *)socket_desc;
     int n = 0;
-    char rbuff[10000];
+    char rbuff[8000]; // limit to 8000 bytes
     memset(rbuff, '\0', sizeof(rbuff));
 
     if (SSL_accept(ssl) <= 0)
@@ -221,30 +235,34 @@ void *connection_handler(void *socket_desc)
 
     while ((n = SSL_read(ssl, rbuff, sizeof(rbuff))) > 0)
     {
-        void *start = strstr(rbuff, "HTTP");
-        void *end = strstr(rbuff, "/");
-        if(start == NULL || end == NULL || start <= end) {
-          send_bad_request(ssl);
+        if(n > 8000) {
+          send_entity_too_large(ssl);
         } else {
-          int len = start - end - 1;
-          char reqRoute[len + 1];
-          memset(reqRoute, '\0', sizeof(reqRoute));
-          strncpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len);
-          char fileName[1000];
-          memset(fileName, '\0', sizeof(fileName));
-          char *tmp = hmap_get(routeMap, reqRoute);
-          if(tmp == NULL) {
-            send_not_found(ssl);
+          void *start = strstr(rbuff, "HTTP");
+          void *end = strstr(rbuff, "/");
+          if(start == NULL || end == NULL || start <= end) {
+            send_bad_request(ssl);
           } else {
-            strcpy(fileName, tmp);
-            int fileSize = fsize(fileName);
-            char fileContent[fileSize];
-            memset(fileContent, '\0', sizeof(fileContent));
-            FILE *fp = fopen(fileName, "r");
-            fread(fileContent, 1, fileSize, fp);
-            fclose(fp);
+            int len = start - end - 1;
+            char reqRoute[len + 1];
+            memset(reqRoute, '\0', sizeof(reqRoute));
+            strncpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len);
+            char fileName[1000];
+            memset(fileName, '\0', sizeof(fileName));
+            char *tmp = hmap_get(routeMap, reqRoute);
+            if(tmp == NULL) {
+              send_not_found(ssl);
+            } else {
+              strcpy(fileName, tmp);
+              int fileSize = fsize(fileName);
+              char fileContent[fileSize];
+              memset(fileContent, '\0', sizeof(fileContent));
+              FILE *fp = fopen(fileName, "r");
+              fread(fileContent, 1, fileSize, fp);
+              fclose(fp);
 
-            send_ok(ssl, fileSize, fileContent);
+              send_ok(ssl, fileSize, fileContent);
+            }
           }
         }
         memset(rbuff, '\0', sizeof(rbuff));
