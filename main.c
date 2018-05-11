@@ -118,6 +118,7 @@ int main(int argc, char *argv[])
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
         printf("Could not create socket");
+        abort();
     }
 
     server.sin_family = AF_INET;
@@ -128,7 +129,10 @@ int main(int argc, char *argv[])
         perror("bind failed. Error");
         return 1;
     }
-    listen(socket_desc, 3);
+
+    if(listen(socket_desc, 3) < 0) {
+      perror("sockdesc listen failed:");
+    }
 
     c = sizeof(struct sockaddr_in);
     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)) > -1) {
@@ -234,9 +238,6 @@ void *connection_handler(void *socket_desc) {
         break;
       }
       rbuff[offset] = '\0';
-      if(SSL_get_error(ssl, n) == SSL_ERROR_WANT_READ) {
-        continue;
-      }
       void *start = strstr(rbuff, "HTTP");
       void *end = strstr(rbuff, "/");
       if(start == NULL || end == NULL || start <= end) {
@@ -263,7 +264,10 @@ void *connection_handler(void *socket_desc) {
         perror(fileName);
         break;
       }
-      fread(fileContent, 1, fileSize, fp);
+      if(fread(fileContent, 1, fileSize, fp) < 0) {
+        perror("fread failed to read:");
+        break;
+      }
       fclose(fp);
       send_ok(ssl, fileSize, fileContent);
     }
