@@ -28,27 +28,6 @@ void construct_routes() {
 ## Load Test Findings
 
 Machine type
-* f1-micro (1 vCPU, 0.6 GB memory)
-
-CPU platform
-* Intel Sandy Bridge
-
-Zone
-* us-central1-a
-
-Requests per Page Load
-* 6
-
-Page Size
-* 60.1 kb
-
-<img src="https://i.imgur.com/7T7zDWg.png" />
-
-<img src="https://i.imgur.com/bomRJy6.png" />
-
-----
-
-Machine type
 * custom (4 vCPU, 8.0 GB memory)
 
 CPU platform
