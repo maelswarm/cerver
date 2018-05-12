@@ -42,6 +42,6 @@ Requests per Page Load
 Page Size
 * 60.1 kb
 
-<img src="https://i.imgur.com/7W66aZ6.png" />
+<img src="https://i.imgur.com/7T7zDWg.png" />
 
-<img src="https://i.imgur.com/9vUAV9H.png" />
+<img src="https://i.imgur.com/bomRJy6.png" />
