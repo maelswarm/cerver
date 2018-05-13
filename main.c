@@ -35,7 +35,7 @@ void intHandler(int);
 void configure_context(SSL_CTX *);
 void construct_routes();
 void send_not_found(SSL *);
-void send_ok(SSL *, int, char *);
+void send_ok(SSL *, int, char *, _Bool);
 void *connection_handler(void *);
 
 SSL_CTX *ctx;
@@ -182,6 +182,7 @@ int main(int argc, char *argv[])
 
     c = sizeof(struct sockaddr_in);
     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)) > -1) {
+      fcntl(client_sock, F_SETFL, O_NONBLOCK);
       pthread_mutex_lock(&lock);
       if(firstNode != NULL) {
         lastNode->next = createNode(client_sock);
@@ -217,9 +218,13 @@ void send_entity_too_large(SSL *ssl) {
     strncat(sbuff, "Connection: Closed\r\n", sbuffSize);
     strncat(sbuff, "Content-Length: 42\r\n\r\n", sbuffSize);
     strncat(sbuff, "<html><body>Entity Too Large</body></html>", sbuffSize);
-    int ret;
-    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
-      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    int ret = 0, offset = 0;
+    while(1) {
+      ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
+      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+        break;
+      }
+      offset += ret;
     }
 }
 
@@ -232,9 +237,13 @@ void send_bad_request(SSL *ssl) {
     strncat(sbuff, "Connection: Closed\r\n", sbuffSize);
     strncat(sbuff, "Content-Length: 37\r\n\r\n", sbuffSize);
     strncat(sbuff, "<html><body>Bad Request</body></html>", sbuffSize);
-    int ret;
-    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
-      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    int ret = 0, offset = 0;
+    while(1) {
+      ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
+      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+        break;
+      }
+      offset += ret;
     }
 }
 
@@ -247,66 +256,96 @@ void send_not_found(SSL *ssl) {
     strncat(sbuff, "Connection: Closed\r\n", sbuffSize);
     strncat(sbuff, "Content-Length: 35\r\n\r\n", sbuffSize);
     strncat(sbuff, "<html><body>Not Found</body></html>", sbuffSize);
-    int ret;
-    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
-      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    int ret = 0, offset = 0;
+    while(1) {
+      ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
+      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+        break;
+      }
+      offset += ret;
     }
 }
 
-void send_ok(SSL *ssl, int fileSize, char *fileContent) {
+void send_ok(SSL *ssl, int fileSize, char *fileContent, _Bool persistent) {
     char sbuff[fileSize+1000];
     size_t sbuffSize = sizeof(sbuff);
     memset(sbuff, '\0', sbuffSize);
 
     snprintf(sbuff, sbuffSize, "%s%i", "HTTP/1.1 200 OK\r\nContent-Length: ", fileSize);
-    strncat(sbuff, "\r\nConnection: keep-alive\r\n\r\n", sbuffSize);
+    strncat(sbuff, "\r\nConnection: closed\r\n\r\n", sbuffSize);
     strncat(sbuff, fileContent, sbuffSize);
-    int ret;
-    if(ret = SSL_write(ssl, sbuff, strlen(sbuff)) <= 0) {
-      printf("Send Error: %i", SSL_get_error(ssl, ret));
+    int ret = 0, offset = 0;
+    while(1) {
+      ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
+      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+        break;
+      }
+      offset += ret;
     }
 }
 
 void *connection_handler(void *thread_share) {
-    while(alive) {
-      SSL *ssl = SSL_new(ctx);
-      pthread_mutex_lock(&lock);
-      while(firstNode == NULL) {
-        pthread_cond_wait(&cond, &lock);
+  while(alive) {
+    SSL *ssl = SSL_new(ctx);
+    pthread_mutex_lock(&lock);
+    while(firstNode == NULL) {
+      pthread_cond_wait(&cond, &lock);
+    }
+    if(firstNode == NULL) {continue;}
+    int sock = firstNode->fd;
+    Node *tmp = firstNode->next;
+    free(firstNode);
+    firstNode = tmp;
+    pthread_mutex_unlock(&lock);
+    SSL_set_fd(ssl, sock);
+    int n = 0, offset = 0;
+    char rbuff[8000];
+    memset(rbuff, '\0', sizeof(rbuff));
+    if (SSL_accept(ssl) <= 0) {
+      ERR_print_errors_fp(stderr);
+    }
+    BIO *accept_bio = BIO_new_socket(sock, BIO_CLOSE);
+    SSL_set_bio(ssl, accept_bio, accept_bio);
+    int connect = SSL_accept(ssl);
+    int error = SSL_get_error(ssl, connect);
+    int persis = 0;
+    while(error == SSL_ERROR_WANT_READ) {
+      n = SSL_read(ssl, &rbuff[offset], sizeof(rbuff) - offset);
+      if(n > -1) {
+        offset += n;
       }
-      if(firstNode == NULL) {continue;}
-      int sock = firstNode->fd;
-      Node *tmp = firstNode->next;
-      free(firstNode);
-      firstNode = tmp;
-      pthread_mutex_unlock(&lock);
-      SSL_set_fd(ssl, sock);
-      int n = 0, offset = 0;
-      char rbuff[8000];
-      memset(rbuff, '\0', sizeof(rbuff));
-      if (SSL_accept(ssl) <= 0) {
-        ERR_print_errors_fp(stderr);
+      error = SSL_get_error(ssl, n);
+      //printf("Error: %i\n", error);
+      if(error == SSL_ERROR_WANT_READ) {
+        continue;
       }
-      while ((n = SSL_read(ssl, &rbuff, sizeof(rbuff))) > 0) {
-        void *start = strstr(rbuff, "HTTP");
-        void *end = strstr(rbuff, "/");
-        if(start == NULL || end == NULL || start <= end) {
+      rbuff[offset] = '\0';
+      void *start = strstr(rbuff, "HTTP");
+      void *end = strstr(rbuff, "/");
+      if((start == NULL || end == NULL || start <= end)) {
+        if(error == SSL_ERROR_NONE) {
           send_bad_request(ssl);
-          continue;
+          break;
         }
-        int len = start - end - 1;
-        char reqRoute[len + 1];
-        memset(reqRoute, '\0', sizeof(reqRoute));
-        strlcpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len + 1);
-        char fileName[1000];
-        memset(fileName, '\0', sizeof(fileName));
-        char *tmp = hmap_get(routeMap, reqRoute);
-        if(tmp == NULL) {
+        continue;
+      }
+      int len = start - end - 1;
+      char reqRoute[len + 1];
+      memset(reqRoute, '\0', sizeof(reqRoute));
+      strlcpy(reqRoute, &rbuff[strcspn(rbuff, " ") + 1], len + 1);
+      char fileName[1000];
+      memset(fileName, '\0', sizeof(fileName));
+      char *tmp = hmap_get(routeMap, reqRoute);
+      if(tmp == NULL) {
+        if(error == SSL_ERROR_NONE) {
           send_not_found(ssl);
-          continue;
+          break;
         }
-        strlcpy(fileName, tmp, sizeof(fileName));
-        int fileSize = fsize(fileName);
+        continue;
+      }
+      strlcpy(fileName, tmp, sizeof(fileName));
+      int fileSize = fsize(fileName);
+      if(fileSize != -1) {
         char fileContent[fileSize];
         memset(fileContent, '\0', sizeof(fileContent));
         FILE *fp;
@@ -319,16 +358,19 @@ void *connection_handler(void *thread_share) {
           break;
         }
         fclose(fp);
-        send_ok(ssl, fileSize, fileContent);
-        memset(rbuff, '\0', sizeof(rbuff));
-      }
-
-      SSL_free(ssl);
-      close(sock);
-
-      if(n < 0) {
-        perror("recv failed");
+        if(error == SSL_ERROR_NONE) {
+          send_ok(ssl, fileSize, fileContent, 0);
+          break;
+        }
       }
     }
-    return 0;
+//    BIO_free(accept_bio);
+    SSL_free(ssl);
+    close(sock);
+
+    if(n < 0) {
+      perror("recv failed");
+    }
+  }
+  return 0;
 }
