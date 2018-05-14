@@ -221,10 +221,13 @@ void send_entity_too_large(SSL *ssl) {
     int ret = 0, offset = 0;
     while(1) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
-      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+      if(ret > -1) {
+        offset += ret;
+      }
+      if(offset >= 42) {
+        //printf("Sent %i:bytes\n");
         break;
       }
-      offset += ret;
     }
 }
 
@@ -240,10 +243,13 @@ void send_bad_request(SSL *ssl) {
     int ret = 0, offset = 0;
     while(1) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
-      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+      if(ret > -1) {
+        offset += ret;
+      }
+      if(offset >= 37) {
+        //printf("Sent %i:bytes\n");
         break;
       }
-      offset += ret;
     }
 }
 
@@ -259,10 +265,13 @@ void send_not_found(SSL *ssl) {
     int ret = 0, offset = 0;
     while(1) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
-      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+      if(ret > -1) {
+        offset += ret;
+      }
+      if(offset >= 35) {
+        //printf("Sent %i:bytes\n");
         break;
       }
-      offset += ret;
     }
 }
 
@@ -271,16 +280,19 @@ void send_ok(SSL *ssl, int fileSize, char *fileContent, _Bool persistent) {
     size_t sbuffSize = sizeof(sbuff);
     memset(sbuff, '\0', sbuffSize);
 
-    snprintf(sbuff, sbuffSize, "%s%i", "HTTP/1.1 200 OK\r\nContent-Length: ", fileSize);
-    strncat(sbuff, "\r\nConnection: closed\r\n\r\n", sbuffSize);
+    snprintf(sbuff, sbuffSize, "%s%i", "HTTP/1.1 200 OK\r\nContent-Length: ", fileSize); //33
+    strncat(sbuff, "\r\nConnection: closed\r\n\r\n", sbuffSize); //24
     strncat(sbuff, fileContent, sbuffSize);
     int ret = 0, offset = 0;
     while(1) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
-      if(SSL_get_error(ssl, ret) == SSL_ERROR_NONE) {
+      if(ret > -1) {
+        offset += ret;
+      }
+      if(offset >= fileSize) {
+        //printf("Sent %i:bytes\n");
         break;
       }
-      offset += ret;
     }
 }
 
@@ -301,23 +313,20 @@ void *connection_handler(void *thread_share) {
     int n = 0, offset = 0;
     char rbuff[8000];
     memset(rbuff, '\0', sizeof(rbuff));
-    if (SSL_accept(ssl) <= 0) {
-      ERR_print_errors_fp(stderr);
-    }
     BIO *accept_bio = BIO_new_socket(sock, BIO_CLOSE);
     SSL_set_bio(ssl, accept_bio, accept_bio);
     int connect = SSL_accept(ssl);
     int error = SSL_get_error(ssl, connect);
-    int persis = 0;
-    while(error == SSL_ERROR_WANT_READ) {
+    while(1) {
       n = SSL_read(ssl, &rbuff[offset], sizeof(rbuff) - offset);
       if(n > -1) {
         offset += n;
       }
       error = SSL_get_error(ssl, n);
-      //printf("Error: %i\n", error);
       if(error == SSL_ERROR_WANT_READ) {
         continue;
+      } else if(error == 5) {
+        break;
       }
       rbuff[offset] = '\0';
       void *start = strstr(rbuff, "HTTP");
@@ -363,8 +372,8 @@ void *connection_handler(void *thread_share) {
           break;
         }
       }
+      break;
     }
-//    BIO_free(accept_bio);
     SSL_free(ssl);
     close(sock);
 
