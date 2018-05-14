@@ -24,24 +24,3 @@ void construct_routes() {
   //add routes...
 }
 ````
-
-## Load Test Findings
-
-Machine type
-* custom (4 vCPU, 8.0 GB memory)
-
-CPU platform
-* Intel Sandy Bridge
-
-Zone
-* us-central1-a
-
-Requests per Page Load
-* 6
-
-Page Size
-* 60.1 kb
-
-<img src="https://i.imgur.com/K39YjFx.png" />
-
-<img src="https://i.imgur.com/KCdBLGr.png" />
