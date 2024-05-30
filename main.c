@@ -223,6 +223,8 @@ void send_entity_too_large(SSL *ssl) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
       if(ret > -1) {
         offset += ret;
+      } else {
+	      break;
       }
       if(offset >= 42) {
         //printf("Sent %i:bytes\n");
@@ -245,6 +247,8 @@ void send_bad_request(SSL *ssl) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
       if(ret > -1) {
         offset += ret;
+      } else {
+	      break;
       }
       if(offset >= 37) {
         //printf("Sent %i:bytes\n");
@@ -267,6 +271,8 @@ void send_not_found(SSL *ssl) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
       if(ret > -1) {
         offset += ret;
+      } else {
+	      break;
       }
       if(offset >= 35) {
         //printf("Sent %i:bytes\n");
@@ -288,6 +294,8 @@ void send_ok(SSL *ssl, int fileSize, char *fileContent, _Bool persistent) {
       ret = SSL_write(ssl, &sbuff[offset], strlen(sbuff) - offset);
       if(ret > -1) {
         offset += ret;
+      } else {
+	      break;
       }
       if(offset >= fileSize) {
         //printf("Sent %i:bytes\n");
