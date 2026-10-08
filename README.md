@@ -5,7 +5,7 @@ This project is in development... It's not ready for a production environment.
 ## Install
 
 ````
-git clone git@github.com:roecrew/cerver.git
+git clone git@github.com:maelswarm/cerver.git
 openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem
 make
 ````
